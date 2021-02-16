@@ -4,7 +4,7 @@
 
 # resolve-player-info
 
-ニコニコ生放送 (ニコ生ゲーム) や RPG アツマールにおいて、
+ニコニコ生放送 (ニコ生ゲーム) や ゲームアツマールにおいて、
 プレイヤーのユーザ情報を取得するための Akashic Engine 向けライブラリです。
 
 利用には Akashic Engine v3 以降が必要です。
@@ -58,7 +58,7 @@ g.game.onPlayerInfo(function (ev) {
 resolvePlayerInfo({ raises: true });
 ```
 
-RPG アツマールでは、[ユーザ情報取得 API](https://atsumaru.github.io/api-references/user/) が呼び出され、その結果が通知されます。
+ゲームアツマールでは、[ユーザ情報取得 API](https://atsumaru.github.io/api-references/user/) が呼び出され、その結果が通知されます。
 ニコニコ生放送 (ニコ生ゲーム) では、ユーザ名の利用許諾を求めるダイアログが表示されます。
 許諾された場合にはユーザ名が、されなかった場合はランダムに生成されたダミーの名前 (「ゲスト123」など) が通知されます。
 
