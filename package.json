@@ -1,0 +1,44 @@
+{
+  "name": "@akashic-extension/resolve-player-info",
+  "version": "1.0.0",
+  "description": "ユーザー用のプレイヤー名取得ライブラリ",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "prepublish": "npm run clean && npm run build",
+    "clean": "rimraf ./lib",
+    "build": "tsc -p ./",
+    "lint": "npm run lint:ts && npm run lint:md",
+    "lint:ts": "tslint -c tslint.json -p tsconfig.json",
+    "lint:md": "remark ./*.md --frail --no-stdout --quiet --rc-path ./.remarkrc",
+    "test": "npm run lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/akashic-games/resolve-player-info.git"
+  },
+  "keywords": [],
+  "author": "DWANGO Co., Ltd.",
+  "license": "MIT",
+  "files": [
+    "lib",
+    "package.json",
+    "README.md",
+    "akashic-lib.json"
+  ],
+  "dependencies": {
+    "@akashic-extension/akashic-hover-plugin": "~3.0.0"
+  },
+  "devDependencies": {
+    "@akashic-extension/coe-messages": "~3.1.0",
+    "@akashic/akashic-engine": "~3.0.4",
+    "@akashic/remark-preset-lint": "~0.1.1",
+    "remark-cli": "^8.0.0",
+    "rimraf": "^3.0.2",
+    "tslint": "^6.1.1",
+    "typescript": "^3.8.3"
+  },
+  "publishConfig": {
+    "@akashic-extension:registry": "https://registry.npmjs.org/"
+  }
+}
