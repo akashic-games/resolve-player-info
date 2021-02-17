@@ -20,7 +20,7 @@ export interface ResolvePlayerInfoOptions {
 	limitSeconds?: number;
 }
 
-// RPGアツマールAPI user.getSelfInformation が返すプレイヤー自身のユーザー情報
+// ゲームアツマールAPI user.getSelfInformation が返すプレイヤー自身のユーザー情報
 interface SelfInformation {
 	id: number;
 	name: string;
@@ -30,7 +30,7 @@ interface SelfInformation {
 	url: string;
 }
 
-// ここで利用するRPGアツマールAPIのみを型として定義
+// ここで利用するゲームアツマールAPIのみを型として定義
 interface RPGAtsumaruApi {
 	// https://atsumaru.github.io/api-references/apis/user
 	user: {
