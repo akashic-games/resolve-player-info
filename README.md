@@ -90,6 +90,7 @@ resolvePlayerInfo(opts, callback);
 |:---:|:---:|:---|
 |`name`|`string`|ユーザ名。|
 |`userData.accepted`|`boolean`|名前利用を許諾したか。 `false` の場合、 `name` はランダムに生成された名前です (e.g. 「ゲスト123」)。|
+|`userData.premium`|`boolean`|ユーザーがニコニコプレミアム会員かどうか。|
 |`userData.unnamed`|`boolean` またはなし|名前のない (非プレイヤー) インスタンスの時、 `true` 。<br>サーバサイドなどの特殊なインスタンスの場合にのみ `true` になります。<br>このプレイヤーは自発的に操作を行うことはありません。<br> `raises` オプションが真の場合でも、このプレイヤーが `g.PlayerInfoEvent` で通知されることはありません。|
 
 ## 制限
