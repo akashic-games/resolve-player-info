@@ -4,6 +4,7 @@ import { FallbackDialog } from "./FallbackDialog";
 export interface PlayerInfoUserData {
 	// 名前利用が許諾されたか。false の場合、名前利用が拒否された。nameに入っている文字列はダミー文字列 (使ってもいいがユーザ名ではない)
 	accepted: boolean;
+	premium: boolean;
 	unnamed?: boolean;
 }
 
@@ -88,7 +89,8 @@ export const resolvePlayerInfo = (
 			cb({
 				name: data.name,
 				userData: {
-					accepted: true
+					accepted: true,
+					premium: data.isPremium
 				}
 			});
 			isCurrentResolvingPlayerInfo = false;
@@ -113,7 +115,8 @@ export const resolvePlayerInfo = (
 			cb({
 				name: null,  // player-info-resolverが設定しているデフォルトの名前にすべきだが、ここでは取得できないのでnullとする
 				userData: {
-					accepted: false
+					accepted: false,
+					premium: false
 				}
 			});
 			// NOTE: リアルタイム視聴の場合、大半のケースではこちらのパスには到達しないはず (仮に到達しても同一セッションIDの COE#exitSession() が呼ばれるのみ)
@@ -147,7 +150,7 @@ export const resolvePlayerInfo = (
 		const dialog = new FallbackDialog(name);
 		dialog.start(limitSeconds);
 		dialog.onEnd.addOnce(() => {
-			cb({ name, userData: { accepted: false } });
+			cb({ name, userData: { accepted: false, premium: false } });
 			isCurrentResolvingPlayerInfo = false;
 		});
 	} else {
@@ -155,6 +158,7 @@ export const resolvePlayerInfo = (
 			name: "",
 			userData: {
 				accepted: false,
+				premium: false,
 				unnamed: true
 			}
 		});
