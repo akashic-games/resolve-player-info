@@ -17,7 +17,9 @@
 akashic install @akashic-extension/resolve-player-info
 ```
 
-インストール後にテキストエディタで game.json を開いて、次のような `environment.external.coeLimited`, `environment.external.atsumaru` プロパティがなければ作成してください。値は `"0"` としてください。(v2.1.2 以降の `akashic-cli` では、 `akashic install` 時に自動的に作成されます。)
+インストール後にテキストエディタで game.json を開いて、次のような `environment.external.coeLimited`,
+`environment.external.atsumaru` プロパティがなければ作成してください。
+値は `"0"` としてください。(v2.1.2 以降の `akashic-cli` では、 `akashic install` 時に自動的に作成されます。)
 
 ```json
 {
