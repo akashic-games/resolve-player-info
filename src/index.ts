@@ -158,7 +158,7 @@ export interface ResolvePlayerInfoOptions {
 
 const DEFAULT_LIMIT_SECONDS = 15;
 
-// resolvePlayerInfo関数が2重で実行されてしまうことを防ぐためのフラグ
+// resolvePlayerInfo() の多重呼び出し防止フラグ
 let isResolving: boolean = false;
 
 function find<T>(xs: T[], pred: (val: T) => boolean): T | undefined {
@@ -178,6 +178,11 @@ export const resolvePlayerInfo = (
 	opts: ResolvePlayerInfoOptions | null,
 	callback?: (error: Error | null, playerInfo?: PlayerInfo) => void
 ): void => {
+	if (isResolving) {
+		callback?.(new Error("Last processing has not yet been completed."), null);
+		return;
+	}
+
 	const cb = (err: Error | null, info?: PlayerInfo) => {
 		isResolving = false;
 		callback?.(err, info);
@@ -188,11 +193,6 @@ export const resolvePlayerInfo = (
 			}
 		}
 	};
-
-	if (isResolving) {
-		cb(new Error("Last processing has not yet been completed."), null);
-		return;
-	}
 
 	const limitSeconds = opts && opts.limitSeconds ? opts.limitSeconds : DEFAULT_LIMIT_SECONDS;
 	const resolver = find(resolvers, r => r.isSupported())!; // isSupported() が恒真の実装があるので non-null
