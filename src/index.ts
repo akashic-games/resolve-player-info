@@ -98,7 +98,7 @@ const resolvers: ResolverDecl[] = [
 			return !!(atsumaru && atsumaru.getSelfInformationProto);
 		},
 		resolve: (_limitSeconds, callback) => {
-			(g.game.external.atsumaru! as AtsumaruPlugin).getSelfInformationProto!({
+			(g.game.external.atsumaru! as AtsumaruPlugin).getSelfInformationProto({
 				callback: (errorMessage, result) => {
 					if (errorMessage != null) {
 						callback(new Error(errorMessage), null);
