@@ -2,7 +2,8 @@
   "gameConfigurationData": {
     "environment": {
       "external": {
-        "coeLimited": "0"
+        "coeLimited": "0",
+        "atsumaru": "0"
       }
     }
   }

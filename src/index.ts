@@ -1,18 +1,153 @@
 import { COEEndMessage } from "@akashic-extension/coe-messages";
 import { FallbackDialog } from "./FallbackDialog";
+import { PlayerInfo, PlayerInfoUserData } from "./types/PlayerInfo";
+import { WindowWithRPGAtsumaru } from "./types/RPGAtsumaruApi";
+import { ResolverSessionParameters } from "./types/PlayerInfoResolver";
+import { AtsumaruPlugin } from "./types/AtsumaruPlugin";
 
-export interface PlayerInfoUserData {
-	// 名前利用が許諾されたか。false の場合、名前利用が拒否された。nameに入っている文字列はダミー文字列 (使ってもいいがユーザ名ではない)
-	accepted: boolean;
-	premium: boolean;
-	unnamed?: boolean;
+export { PlayerInfo, PlayerInfoUserData };
+
+declare var window: WindowWithRPGAtsumaru;
+const rpgAtsumaru = typeof window !== "undefined" ? window.RPGAtsumaru : undefined;
+
+function createRandomName(): string {
+	return "ゲスト" + ((Math.random() * 1000) | 0);
 }
 
-export interface PlayerInfo {
-	// ここでプレイヤー名が得られる。nullの場合、コンテンツ側でデフォルトのプレイヤー名を与える必要がある。
-	name: string | null;
-	userData: PlayerInfoUserData;
+interface ResolverDecl {
+	isSupported(): boolean;
+	resolve(limitSeconds: number, callback: (error: Error | null, playerInfo?: PlayerInfo) => void): void;
 }
+
+const resolvers: ResolverDecl[] = [
+	// window.RPGAtsumaru
+	{
+		isSupported: () => !!(rpgAtsumaru && rpgAtsumaru.user && rpgAtsumaru.user.getSelfInformation),
+		resolve: (_limitSeconds, callback) => {
+			rpgAtsumaru.user.getSelfInformation().then(
+				selfInfo => {
+					callback(null, {
+						name: selfInfo.name,
+						userData: {
+							accepted: true,
+							premium: selfInfo.isPremium
+						}
+					});
+				},
+				err => {
+					callback(err, null);
+				}
+			);
+		}
+	},
+
+	// coeLimited
+	{
+		isSupported: () => {
+			const coeLimited = g.game.external.coeLimited;
+			return !!(coeLimited && coeLimited.startLocalSession && coeLimited.exitLocalSession);
+		},
+		resolve: (limitSeconds, callback) => {
+			const sessionId = g.game.playId + "__player-info-resolver";
+			const scene = g.game.scene();
+
+			let timeoutId: g.TimerIdentifier | null = scene.setTimeout(() => {
+				timeoutId = null;
+				// NOTE: スキップ時は既に終了済みのローカルセッション自体が起動せず messageHandler() も呼ばれなるため、
+				// ここで callback() を呼ばないとコンテンツ側がコールバックをいつまでも待ってしまう状態になってしまう
+				callback(null, {
+					name: null,  // player-info-resolverが返す名前にしたいが、ここでは取得できないのでnullとする
+					userData: { accepted: false, premium: false }
+				});
+
+				// NOTE: リアルタイム視聴の場合、大半のケースではこちらのパスには到達しないはず
+				// (仮に到達しても同一セッションIDの COE#exitSession() が呼ばれるのみ)
+				// 追っかけ再生またはタイムシフトによる視聴においては、
+				// player-info-resolver の自発終了よりも先に以下の exitLocalSession() を呼ぶことで
+				// 「スキップ中のセッション起動を抑止する」というプラットフォーム側の機能を有効にしている
+				g.game.external.coeLimited.exitLocalSession(sessionId, { needsResult: true });
+			}, (limitSeconds + 2) * 1000); // NOTE: 読み込みなどを考慮して 2 秒のバッファを取る
+
+			g.game.external.coeLimited.startLocalSession({
+				sessionId,
+				applicationName: "player-info-resolver",
+				localEvents: [
+					[
+						32,
+						0,
+						":akashic",
+						{ type: "start", parameters: { limitSeconds } } as ResolverSessionParameters
+					]
+				],
+				messageHandler: (message: COEEndMessage) => {
+					if (timeoutId == null) { // 先にタイムアウト処理が実行されていたら何もしない
+						return;
+					}
+					scene.clearTimeout(timeoutId);
+					// TODO 引数からエラーを取得できるようになったら、異常系の処理も行う
+					callback(null, message.result);
+				}
+			});
+		}
+	},
+
+	// g.game.external.atsumaru
+	{
+		isSupported: () => {
+			const atsumaru = g.game.external.atsumaru as AtsumaruPlugin | null;
+			return !!(atsumaru && atsumaru.getSelfInformationProto);
+		},
+		resolve: (_limitSeconds, callback) => {
+			(g.game.external.atsumaru! as AtsumaruPlugin).getSelfInformationProto({
+				callback: (errorMessage, result) => {
+					if (errorMessage != null) {
+						callback(new Error(errorMessage), null);
+						return;
+					}
+					if (result && result.login) {
+						callback(null, {
+							name: result.name,
+							userData: { accepted: true, premium: result.premium }
+						});
+					} else {
+						callback(null, {
+							name: createRandomName(),
+							userData: { accepted: false, premium: false }
+						});
+					}
+				}
+			});
+		}
+	},
+
+	// FallbackDialog
+	{
+		isSupported: FallbackDialog.isSupported,
+		resolve: (limitSeconds, callback) => {
+			const name = createRandomName();
+			const dialog = new FallbackDialog(name);
+			dialog.start(limitSeconds);
+			dialog.onEnd.addOnce(() => {
+				callback(null, { name, userData: { accepted: false, premium: false } });
+			});
+		}
+	},
+
+	// sentinel
+	{
+		isSupported: () => true,
+		resolve: (_limitSeconds, callback) => {
+			callback(null, {
+				name: "",
+				userData: {
+					accepted: false,
+					premium: false,
+					unnamed: true
+				}
+			});
+		}
+	}
+];
 
 export interface ResolvePlayerInfoOptions {
 	// true なら取得成功時 (Error なく accepted が真の時) に raiseEvent(new PlayerInfoEvent()) する。デフォルトは false
@@ -21,42 +156,18 @@ export interface ResolvePlayerInfoOptions {
 	limitSeconds?: number;
 }
 
-// ゲームアツマールAPI user.getSelfInformation が返すプレイヤー自身のユーザー情報
-interface SelfInformation {
-	id: number;
-	name: string;
-	isPremium: boolean;
-	profile: string;
-	twitterId: string;
-	url: string;
-}
-
-// ここで利用するゲームアツマールAPIのみを型として定義
-interface RPGAtsumaruApi {
-	// https://atsumaru.github.io/api-references/apis/user
-	user: {
-		getSelfInformation: () => Promise<SelfInformation>;
-	};
-}
-
-// player-info-resolver のセッションパラメータ
-interface LocalSessionParameters {
-	type: "start";
-	parameters: {
-		limitSeconds: number;
-	};
-}
-
-interface WidowWithRPGAtsumaru extends Window {
-	RPGAtsumaru: RPGAtsumaruApi;
-}
-
-declare var window: WidowWithRPGAtsumaru;
-
 const DEFAULT_LIMIT_SECONDS = 15;
 
-// resolvePlayerInfo関数が2重で実行されてしまうことを防ぐためのフラグ
-let isCurrentResolvingPlayerInfo: boolean = false;
+// resolvePlayerInfo() の多重呼び出し防止フラグ
+let isResolving: boolean = false;
+
+function find<T>(xs: T[], pred: (val: T) => boolean): T | undefined {
+	for (let i = 0; i < xs.length; ++i) {
+		if (pred(xs[i]))
+			return xs[i];
+	}
+	return undefined;
+}
 
 /**
  * ユーザー情報の取得と通知を行う
@@ -67,101 +178,29 @@ export const resolvePlayerInfo = (
 	opts: ResolvePlayerInfoOptions | null,
 	callback?: (error: Error | null, playerInfo?: PlayerInfo) => void
 ): void => {
-	if (isCurrentResolvingPlayerInfo) {
-		if (callback) {
-			callback(new Error("Last processing has not yet been completed."));
-		}
+	if (isResolving) {
+		callback?.(new Error("Last processing has not yet been completed."), null);
 		return;
 	}
-	const limitSeconds = opts && opts.limitSeconds ? opts.limitSeconds : DEFAULT_LIMIT_SECONDS;
-	const cb = (info: PlayerInfo) => {
-		if (callback) {
-			callback(null, info);
-		}
-		if (opts && opts.raises && (!info.userData || !info.userData.unnamed)) {
-			g.game.raiseEvent(new g.PlayerInfoEvent({ id: g.game.selfId, name: info.name, userData: info.userData }));
+
+	const cb = (err: Error | null, info?: PlayerInfo) => {
+		isResolving = false;
+		callback?.(err, info);
+		if (!err) {
+			const { name, userData } = info!;
+			if (opts && opts.raises && (!userData || !userData.unnamed)) {
+				g.game.raiseEvent(new g.PlayerInfoEvent({ id: g.game.selfId, name, userData }));
+			}
 		}
 	};
-	const rpgAtsumaru: RPGAtsumaruApi = typeof window !== "undefined" ? window.RPGAtsumaru : undefined;
-	if (rpgAtsumaru && rpgAtsumaru.user && rpgAtsumaru.user.getSelfInformation) {
-		isCurrentResolvingPlayerInfo = true;
-		rpgAtsumaru.user.getSelfInformation().then((data: SelfInformation) => {
-			cb({
-				name: data.name,
-				userData: {
-					accepted: true,
-					premium: data.isPremium
-				}
-			});
-			isCurrentResolvingPlayerInfo = false;
-		}).catch((err: Error) => {
-			if (callback) {
-				callback(err);
-			}
-			isCurrentResolvingPlayerInfo = false;
-		});
-	} else if (
-		g.game.external.coeLimited &&
-		g.game.external.coeLimited.startLocalSession &&
-		g.game.external.coeLimited.exitLocalSession
-	) {
-		isCurrentResolvingPlayerInfo = true;
-		const sessionId = g.game.playId + "__player-info-resolver";
-		const scene = g.game.scene();
-		let timeoutId: g.TimerIdentifier | null = scene.setTimeout(() => {
-			timeoutId = null;
-			// NOTE: スキップ時は既に終了済みのローカルセッション自体が起動せず messageHandler() も呼ばれなるため、
-			// ここで cb() を呼ばないとコンテンツ側がコールバックをいつまでも待ってしまう状態になってしまう
-			cb({
-				name: null,  // player-info-resolverが設定しているデフォルトの名前にすべきだが、ここでは取得できないのでnullとする
-				userData: {
-					accepted: false,
-					premium: false
-				}
-			});
-			// NOTE: リアルタイム視聴の場合、大半のケースではこちらのパスには到達しないはず (仮に到達しても同一セッションIDの COE#exitSession() が呼ばれるのみ)
-			// 追っかけ再生またはタイムシフトによる視聴においては、 player-info-resolver の自発終了よりも先に以下の exitLocalSession() を呼ぶことで
-			// 「スキップ中のセッション起動を抑止する」というプラットフォーム側の機能を有効にしている
-			g.game.external.coeLimited.exitLocalSession(sessionId, { needsResult: true });
-			isCurrentResolvingPlayerInfo = false;
-		}, (limitSeconds + 1) * 1000); // NOTE: 読み込みなどを考慮して 1 秒のバッファを取る
-		const sessionParameters: LocalSessionParameters = {
-			type: "start",
-			parameters: {
-				limitSeconds
-			}
-		};
-		g.game.external.coeLimited.startLocalSession({
-			sessionId,
-			applicationName: "player-info-resolver",
-			localEvents: [[32, 0, ":akashic", sessionParameters]],
-			messageHandler: (message: COEEndMessage) => {
-				// TODO 引数からエラーを取得できるようになったら、異常系の処理も行う
-				if (timeoutId === null) {
-					return;
-				}
-				scene.clearTimeout(timeoutId);
-				cb(message.result);
-				isCurrentResolvingPlayerInfo = false;
-			}
-		});
-	} else if (FallbackDialog.isSupported()) {
-		const name = "ゲスト" + ((Math.random() * 1000) | 0);
-		const dialog = new FallbackDialog(name);
-		dialog.start(limitSeconds);
-		dialog.onEnd.addOnce(() => {
-			cb({ name, userData: { accepted: false, premium: false } });
-			isCurrentResolvingPlayerInfo = false;
-		});
-	} else {
-		cb({
-			name: "",
-			userData: {
-				accepted: false,
-				premium: false,
-				unnamed: true
-			}
-		});
+
+	const limitSeconds = opts && opts.limitSeconds ? opts.limitSeconds : DEFAULT_LIMIT_SECONDS;
+	const resolver = find(resolvers, r => r.isSupported())!; // isSupported() が恒真の実装があるので non-null
+	try {
+		isResolving = true;
+		resolver.resolve(limitSeconds, cb);
+	} catch (e) {
+		cb(e);
 	}
 };
 
