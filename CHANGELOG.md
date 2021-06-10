@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.1.1
+* g.game.external.atsumaru.getSelfInformationProto() がある環境に対応
+
 ## 1.1.0
 * PlayerInfoUserData に premium プロパティを追加
 
