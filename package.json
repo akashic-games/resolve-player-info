@@ -1,6 +1,6 @@
 {
   "name": "@akashic-extension/resolve-player-info",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "ユーザー用のプレイヤー名取得ライブラリ",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -27,7 +27,7 @@
     "akashic-lib.json"
   ],
   "dependencies": {
-    "@akashic-extension/akashic-hover-plugin": "~3.0.0"
+    "@akashic-extension/akashic-hover-plugin": "~3.2.2"
   },
   "devDependencies": {
     "@akashic-extension/coe-messages": "~3.1.0",

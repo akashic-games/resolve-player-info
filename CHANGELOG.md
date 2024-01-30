@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.2.0
+* akashic-hover-plugin\@3.2.2 に更新
+
 ## 1.1.1
 * g.game.external.atsumaru.getSelfInformationProto() がある環境に対応
 
