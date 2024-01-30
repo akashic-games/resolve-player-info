@@ -52,7 +52,7 @@ import { resolvePlayerInfo } from "@akashic-extension/resolve-player-info");
 
 ```javascript
 var nameTable = {};
-g.game.onPlayerInfo(function (ev) {
+g.game.onPlayerInfo.add(function (ev) {
   // ev.player.id にプレイヤーIDが、ev.player.name にそのプレイヤーの名前が含まれます。
   // ここで取得しなくても、以降そのプレイヤーが生成したイベントはすべて .player.name で名前を参照できます。
   nameTable[ev.player.id] = ev.player.name;
