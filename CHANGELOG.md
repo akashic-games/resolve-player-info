@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 2.0.0
+* RPGAtsumaru 機能の削除
+
 ## 1.2.0
 * akashic-hover-plugin\@3.2.2 に更新
 

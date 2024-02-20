@@ -1,6 +1,6 @@
 {
   "name": "@akashic-extension/resolve-player-info",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "ユーザー用のプレイヤー名取得ライブラリ",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
