@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 2.0.0
+## 1.3.0
 * RPGAtsumaru 機能の削除
 
 ## 1.2.0
