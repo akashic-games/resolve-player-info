@@ -17,8 +17,7 @@
 akashic install @akashic-extension/resolve-player-info
 ```
 
-インストール後にテキストエディタで game.json を開いて、次のような `environment.external.coeLimited`,
-`environment.external.atsumaru` プロパティがなければ作成してください。
+インストール後にテキストエディタで game.json を開いて、次のような `environment.external.coeLimited` プロパティがなければ作成してください。
 値は `"0"` としてください。(v2.1.2 以降の `akashic-cli` では、 `akashic install` 時に自動的に作成されます。)
 
 ```json
@@ -26,8 +25,7 @@ akashic install @akashic-extension/resolve-player-info
   ...,
   "environment": {
     "external": {
-      "coeLimited": "0",
-      "atsumaru": "0"
+      "coeLimited": "0"
     }
   }
 }
@@ -63,7 +61,6 @@ resolvePlayerInfo({ raises: true });
 
 `resolvePlayerInfo()` は、ローカルイベント (ローカルエンティティの操作などを契機とするイベント) の処理内でのみ利用してください。
 
-ゲームアツマールでは、[ユーザ情報取得 API](https://atsumaru.github.io/api-references/apis/user) が呼び出され、その結果が通知されます。
 ニコニコ生放送 (ニコ生ゲーム) では、ユーザ名の利用許諾を求めるダイアログが表示されます。
 許諾された場合にはユーザ名が、されなかった場合はランダムに生成されたダミーの名前 (「ゲスト123」など) が通知されます。
 
@@ -106,9 +103,6 @@ resolvePlayerInfo(opts, callback);
   (ニコ生ゲームの推奨解像度は 16:9 (高さが幅の 0.56 倍) で、これを満たします)
 * `resolvePlayerInfo()` の呼び出し後、 `limitSeconds` 秒経過するまで
   (または呼び出した全員分の `game.onPlayerInfo` が通知されるまで) はシーン切り替えを行わないでください。
-* ゲームアツマール環境で利用される [ユーザー情報取得API](https://atsumaru.github.io/api-references/apis/user/) は、呼び出し頻度に制限があります。
-  ゲーム中に `resolvePlayerInfo()` を複数回呼び出すことはあまりないはずですが、必要な場合でも 5 秒に 1 回以上の頻度では呼び出さないでください。
-  詳細は [API の呼び出し回数制限](https://atsumaru.github.io/api-references/common/rate-limit) を参照してください。
 
 ## 開発
 

@@ -1,14 +1,9 @@
 import { COEEndMessage } from "@akashic-extension/coe-messages";
 import { FallbackDialog } from "./FallbackDialog";
 import { PlayerInfo, PlayerInfoUserData } from "./types/PlayerInfo";
-import { WindowWithRPGAtsumaru } from "./types/RPGAtsumaruApi";
 import { ResolverSessionParameters } from "./types/PlayerInfoResolver";
-import { AtsumaruPlugin } from "./types/AtsumaruPlugin";
 
 export { PlayerInfo, PlayerInfoUserData };
-
-declare var window: WindowWithRPGAtsumaru;
-const rpgAtsumaru = typeof window !== "undefined" ? window.RPGAtsumaru : undefined;
 
 function createRandomName(): string {
 	return "ゲスト" + ((Math.random() * 1000) | 0);
@@ -20,26 +15,6 @@ interface ResolverDecl {
 }
 
 const resolvers: ResolverDecl[] = [
-	// window.RPGAtsumaru
-	{
-		isSupported: () => !!(rpgAtsumaru && rpgAtsumaru.user && rpgAtsumaru.user.getSelfInformation),
-		resolve: (_limitSeconds, callback) => {
-			rpgAtsumaru.user.getSelfInformation().then(
-				selfInfo => {
-					callback(null, {
-						name: selfInfo.name,
-						userData: {
-							accepted: true,
-							premium: selfInfo.isPremium
-						}
-					});
-				},
-				err => {
-					callback(err, null);
-				}
-			);
-		}
-	},
 
 	// coeLimited
 	{
@@ -86,35 +61,6 @@ const resolvers: ResolverDecl[] = [
 					scene.clearTimeout(timeoutId);
 					// TODO 引数からエラーを取得できるようになったら、異常系の処理も行う
 					callback(null, message.result);
-				}
-			});
-		}
-	},
-
-	// g.game.external.atsumaru
-	{
-		isSupported: () => {
-			const atsumaru = g.game.external.atsumaru as AtsumaruPlugin | null;
-			return !!(atsumaru && atsumaru.getSelfInformationProto);
-		},
-		resolve: (_limitSeconds, callback) => {
-			(g.game.external.atsumaru! as AtsumaruPlugin).getSelfInformationProto({
-				callback: (errorMessage, result) => {
-					if (errorMessage != null) {
-						callback(new Error(errorMessage), null);
-						return;
-					}
-					if (result && result.login) {
-						callback(null, {
-							name: result.name,
-							userData: { accepted: true, premium: result.premium }
-						});
-					} else {
-						callback(null, {
-							name: createRandomName(),
-							userData: { accepted: false, premium: false }
-						});
-					}
 				}
 			});
 		}
